@@ -76,6 +76,40 @@ public class LinearBox {
         return dot(normal, f) / magnitude(normal);
     }
 
+    public static double[][] matrixMultiply(double[][] mat, double[] vec) {
+        //multiplying a matrix by a column vector is just a specific case of general matrix multiplication.
+        return matrixMultiply(mat, columnToMatrix(vec));
+    }
+
+    public static double[][] matrixMultiply(double[][] mat1, double[][] mat2) {
+        final int n = mat1[0].length;
+        if(n != mat2.length) {
+            return null; //can't dot product if vecs of different dimension
+        }
+        final int h = mat1.length;
+        final int w = mat2[0].length;
+        int sum;
+        double[][] product = new double[h][w];
+        for(int i = 0; i < product.length; i++) {
+            for(int j = 0; j < product[0].length; j++) {
+                sum = 0;
+                for(int k = 0; k < n; k++) {
+                    sum+=mat1[i][k]*mat2[k][j];
+                }
+                product[i][j]=sum;
+            }
+        }
+        return product;
+    }
+
+    public static double[][] columnToMatrix(double[] colVec) {
+        double[][] mat = new double[colVec.length][1];
+        for(int i = 0; i < mat.length; i++) {
+            mat[i][0] = colVec[i];
+        }
+        return mat;
+    }
+
     public static void main(String[] args) {
         System.out.println(determinant(fromList(
                 1,   4,   7,   -2,
@@ -84,5 +118,12 @@ public class LinearBox {
                 3,  -1,   1,   2
                 )));
         System.out.println(distanceToPlane(new double[] {0, 0, 0}, new double[] {1, 1, 0}, new double[] {0, 1, 0}));
+        printMatrix(matrixMultiply(
+                fromList(6, 2, 4,
+                        -1, 4, 3,
+                        -2, 9, 3
+                        ),
+                new double[] {4, -2, 1}
+        ));
     }
 }
