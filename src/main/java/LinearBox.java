@@ -110,6 +110,85 @@ public class LinearBox {
         return mat;
     }
 
+    public static double[][] rref(double[][] mat) {
+        int len = mat.length;
+        int col = 0;
+        for(int row = 0; row < len; row++) {
+            int swap = row;
+            while(mat[swap][col] == 0) {
+                if(++swap == len) {
+                    break;
+                }
+            }
+            if(swap == len) { //all elements of column were 0
+                col++;
+                continue;
+            }
+//            printMatrix(mat);
+//            System.out.println("Swapping " + (row + 1) + "<->" + (swap + 1));
+            swapRows(mat, row, swap); //bring the pivot-to-be to the top for simplicity
+            mat[row] = vectorScale(mat[row], 1/mat[row][col]); //pivot = 1;
+            for(int i = 0 ; i < len; i++) {
+                if(i == row) { //we wouldn't like to do this to the row itself
+                    continue;
+                }
+                mat[i] = vectorAdd(mat[i], vectorScale(mat[row], -mat[i][col])); //all below pivot = 0 by subtracting scalar multiples of pivot row;
+            }
+            col++;
+        }
+        return mat;
+    }
+
+    private static void swapRows(double[][] mat, int row1, int row2) {
+        double[] temp = mat[row1];
+        mat[row1] = mat[row2];
+        mat[row2] = temp;
+    }
+
+    private static double[] getColumnVector(double[][] mat, int col) {
+        int len = mat.length;
+        double[] vec = new double[len];
+        for(int i = 0; i < len; i++) {
+            vec[i] = mat[i][col];
+        }
+        return vec;
+    }
+
+    //Returns the set of basis vectors as an array of vectors. The return value is NOT a matrix - array elements are column vectors, not rows containing matrix elements.
+    private static double[][] getColumnBases(double[][] mat) {
+        int len = mat.length;
+        int cols = mat[0].length;
+        int lastOneRow = -1; //this may be unnecessary - not really sure, but being super strict just in case
+        int lastPivotColumn = -2;
+        int one;
+        for(int i = 0; i < cols; i++) {
+            one = -1;
+            double[] col = getColumnVector(mat, i);
+            for(int j = 0; j < len; j++) {
+                if((col[j] == 1 && (one > -1 || j == lastOneRow)) || (col[j] != 1 && col[j] != 0)) {
+                    lastPivotColumn = i - 1;
+                    break;
+                }
+                if(col[j] == 1) {
+                    one = j;
+                    lastOneRow = j;
+                }
+            }
+            if(lastPivotColumn > -2) {
+                break;
+            }
+        }
+        if(lastPivotColumn == -2) {
+            lastPivotColumn = cols;
+        }
+        //aggregate columns past pivot fringe
+        double[][] out = new double[cols - (lastPivotColumn + 1)][len];
+        for(int i = lastPivotColumn + 1; i < cols; i++) {
+            out[i - (lastPivotColumn + 1)] = getColumnVector(mat, i);
+        }
+        return out;
+    }
+
     public static void main(String[] args) {
         System.out.println(determinant(fromList(
                 1,   4,   7,   -2,
@@ -125,5 +204,21 @@ public class LinearBox {
                         ),
                 new double[] {4, -2, 1}
         ));
+        printMatrix(rref(
+                new double[][] {
+                        new double[]  {1, 0, -1, 2, -1},
+                        new double[]  {1, 1, 1, -1, 2},
+                        new double[]  {0, -1, -2, 3, -3},
+                        new double[]  {5, 2, -1, 4, 1}
+                }
+        ));
+        printMatrix(getColumnBases(rref(
+                new double[][] {
+                      new double[]  {1, 0, -1, 2, -1},
+                      new double[]  {1, 1, 1, -1, 2},
+                      new double[]  {0, -1, -2, 3, -3},
+                      new double[]  {5, 2, -1, 4, 1}
+                }
+        )));
     }
 }
