@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.stream.IntStream;
 
 public class LinearBox {
     public static double determinant(double[][] mat) {
@@ -115,11 +116,15 @@ public class LinearBox {
     }
 
     //Reduced Row Echelon Form of matrix mat
-    public static double[][] rref(double[][] mat) {
+    public static double[][] rref(double[][] ogMat) {
+        double[][] mat = ogMat.clone();
         int len = mat.length;
         int col = 0;
         for(int row = 0; row < len; row++) {
             int swap = row;
+            if(col == len) { // row full of zeroes (all rows below will also be full of zeroes by process)
+                return mat;
+            }
             while(mat[swap][col] == 0) {
                 if(++swap == len) {
                     break;
@@ -161,61 +166,28 @@ public class LinearBox {
     }
 
     public static int getNullity(double[][] mat) {
-        return getColumnBases(mat).length;
+        return mat[0].length - getRank(mat);
+    }
+
+    public static int getRank(double[][] mat) {
+        return getColumnBasis(mat).length;
     }
 
     //Returns the set of non-pivot ("free") column vectors as an array of vectors.
     //The return value is NOT a matrix - array elements are column vectors, not rows containing matrix elements.
-    private static double[][] getColumnBases(double[][] mat) {
-        mat = rref(mat);
-        int len = mat.length;
-        int cols = mat[0].length;
-        int lastOneRow = -1;
-        int lastPivotColumn = -2;
-        int one;
-        int cSpecial = 0; //special cases where basis columns are nestled in between pivot columns with 1s on the same row as a pivot 1 to left, must be noted and preserved
-        boolean special;
-        boolean[] specialBases = new boolean[cols];
-        for(int i = 0; i < cols; i++) {
-            one = -1;
-            double[] col = getColumnVector(mat, i);
-            for(int j = 0; j < len; j++) {
-                if((col[j] == 1 && one > -1) || (col[j] != 1 && col[j] != 0)) {
-                    lastPivotColumn = i - 1;
-                    break;
-                }
-                if(col[j] == 1) {
-                    one = j;
-                    special = (j == lastOneRow);
-                    if(special) {
-                        cSpecial++;
-                    }
-                    specialBases[i] = special;
-                    lastOneRow = j;
-                }
-            }
-            if(lastPivotColumn > -2) {
-                break;
-            }
-        }
-        if(lastPivotColumn == -2) {
-            lastPivotColumn = cols;
-        }
-        //aggregate columns past pivot fringe
-        double[][] out = new double[cSpecial + cols - (lastPivotColumn + 1)][len];
-        int count = 0;
-        int a = 0;
-        while(count < cSpecial) {
-            if(specialBases[a]) {
-                out[count++] = getColumnVector(mat, a);
-//                printVector(getColumnVector(mat, a));
-            }
-            a++;
-        }
-        for(int i = lastPivotColumn + 1; i < cols; i++) {
-            out[cSpecial + i - (lastPivotColumn + 1)] = getColumnVector(mat, i);
-        }
-        return out;
+    public static double[][] getColumnBasis(double[][] mat) {
+        double[][] rref = rref(mat);
+        int count = rref[0].length;
+        final int len = rref.length;
+        return IntStream.range(0, count)
+                    .filter(i -> {
+                        double[] column = getColumnVector(rref, i);
+                        long ones = Arrays.stream(column).filter(d -> d == 1).count();
+                        long zeroes = Arrays.stream(column).filter(d -> d == 0).count();
+                        return (ones == 1L && ones+zeroes==((long) len));
+                    })
+                    .mapToObj(i -> getColumnVector(mat, i))
+                    .toList().toArray(new double[0][0]);
     }
 
     public static void main(String[] args) {
@@ -233,23 +205,14 @@ public class LinearBox {
 //                        ),
 //                new double[] {4, -2, 1}
 //        ));
-        printMatrix(rref(
-                new double[][] {
-                        new double[]  {2, 2, 4, 6, 4},
-                        new double[]  {1, 1, 3, 1, 4}
-                }
-        ));
-        printMatrix(getColumnBases(
-                new double[][] {
-                        new double[]  {2, 2, 4, 6, 4},
-                        new double[]  {1, 1, 3, 1, 4}
-                }
-        ));
-        System.out.println(getNullity(
-                new double[][] {
-                        new double[]  {2, 2, 4, 6, 4},
-                        new double[]  {1, 1, 3, 1, 4}
-                }
-        ));
+        double[][] mat = new double[][] {
+                new double[]  {1, 0, -1, 0, 4},
+                new double[]  {2, 1, 0, 0, 9},
+                new double[]  {-1, 2, 5, 1, -5},
+                new double[]  {1, -1, -3, -2, 9}
+        };
+        printMatrix(rref(mat));
+        printMatrix(getColumnBasis(mat));
+        System.out.println(getNullity(mat));
     }
 }
